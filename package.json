@@ -1,0 +1,13 @@
+{
+  "name": "mnemosyne",
+  "version": "0.1.0",
+  "description": "The system's mind: one binary, hash-chained, append-only EOT log that records only differences that make a difference, each with its Bayesian surprise.",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "test": "node --test eotm.test.mjs",
+    "verify": "node eotm-cli.mjs mind.eot verify",
+    "dump": "node eotm-cli.mjs mind.eot"
+  }
+}
