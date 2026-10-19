@@ -4,18 +4,24 @@ import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as E from "./eotm.mjs";
-import { klDirichlet, makeModel } from "./surprise.mjs";
+import { klDirichlet, klBeta, makeModel, makeCarryModel } from "./surprise.mjs";
 
 const LOG = new URL("./mind.eot", import.meta.url), buf = readFileSync(LOG), scan = E.scan(buf), dec = scan.records.map(E.decode);
 
-test("the committed log verifies and holds only differences plus the ground under them", () => {
+test("the committed log verifies and holds only differences plus the ground under them, per domain", () => {
   assert.ok(scan.ok, scan.error);
-  assert.ok(buf.length < 2048);
-  assert.deepEqual(dec.map((d) => d.kind), ["DMD", "DMD", "DMD", "DMD", "WINDOW", "MARGINS", "GROUND"]);
-  for (const d of dec.filter((x) => x.kind === "DMD")) assert.notEqual(d.before, d.after);
-  const last = dec.filter((x) => x.kind === "DMD").at(-1);
-  assert.equal(last.after, dec.at(-1).root, "the last difference lands on the ground");
-  for (let i = 1; i < 4; i++) assert.equal(dec[i].before, dec[i - 1].after, "each difference starts where the last one ended");
+  assert.ok(buf.length < 4096, `${buf.length} bytes`);
+  const domains = [...new Set(dec.map((d) => d.domain))];
+  assert.equal(domains.length, 2, "udhr-core (structure) and udhr-core/propositions");
+  for (const dom of domains) {
+    const mine = dec.filter((d) => d.domain === dom);
+    const diffs = mine.filter((d) => d.kind === "DMD" || d.kind === "DMDN"), ground = mine.filter((d) => d.kind === "GROUND").at(-1);
+    assert.ok(diffs.length >= 1);
+    for (const d of diffs) assert.notEqual(d.before, d.after, "a record that changed nothing is not a record");
+    for (let i = 1; i < diffs.length; i++) assert.equal(diffs[i].before, diffs[i - 1].after, "each difference starts where the last one ended");
+    assert.equal(diffs.at(-1).after, ground.root, "the last difference lands on the ground");
+  }
+  assert.ok(dec.some((d) => d.kind === "WINDOW") && dec.some((d) => d.kind === "MARGINS"));
 });
 
 test("tamper-evident, append-only, unknown kinds skipped by length", () => {
@@ -36,4 +42,8 @@ test("Bayesian surprise: zero for no update, habituates on repetition, larger fo
   const m = makeModel([1]); const seq = [0, 1, 2, 3, 4].map(() => m.observe(new Map([[1, 1]])));
   for (let i = 1; i < seq.length; i++) assert.ok(seq[i] < seq[i - 1]);
   assert.ok(m.observe(new Map([[1, 3]])) > seq.at(-1));
+  assert.equal(klBeta(3, 2, 3, 2), 0);
+  const c = makeCarryModel(["a"]); const seen = [0, 1, 2].map(() => c.observe(new Set(["a"])));
+  assert.ok(seen[2] < seen[1] && seen[1] < seen[0], "a proposition carried again and again stops being news");
+  assert.ok(c.observe(new Set()) > seen[2], "an edition that drops it is news");
 });

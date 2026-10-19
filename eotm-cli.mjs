@@ -10,6 +10,7 @@ if (mode === "verify") { console.log(`ok: ${s.records.length} records, ${buf.len
 for (const r of s.records) {
   const d = E.decode(r);
   if (d.kind === "DMD") console.log(`DMD     step ${String(d.step).padStart(3)}  src ${d.source}  ${d.before.slice(0, 8)} -> ${d.after.slice(0, 8)}  surprise ${d.surpriseBits.toFixed(2)} bits (+${d.absorbedBits.toFixed(2)} absorbed before)  ${d.changes.map((c) => `${E.unitName(c.unit)}:${c.from < 0 ? "-" : c.from}->${c.to < 0 ? "-" : c.to}`).join(" ")}`);
+  else if (d.kind === "DMDN") console.log(`DMDN    step ${String(d.step).padStart(3)}  src ${d.source}  ${d.before.slice(0, 8)} -> ${d.after.slice(0, 8)}  surprise ${d.surpriseBits.toFixed(2)} bits (+${d.absorbedBits.toFixed(2)} absorbed before)  ${d.changes.length} items changed: ${d.changes.filter((c) => c.to > c.from).length} in, ${d.changes.filter((c) => c.to < c.from).length} out  [domain ${d.domain}]`);
   else if (d.kind === "GROUND") console.log(`GROUND  root ${d.root}  set ${d.setRoot}  ${d.editions} editions, ${d.units} units`);
   else if (d.kind === "WINDOW") console.log(`WINDOW  stable window root p50/p95/max ${d.rootP50}/${d.rootP95}/${d.rootMax}, article ${d.artP50}/${d.artP95}/${d.artMax}, ${d.orders} orders, ${d.pivotal} pivotal editions`);
   else if (d.kind === "MARGINS") console.log(`MARGINS softest: ${d.rows.filter((x) => x.margin > 0).sort((a, b) => a.margin - b.margin).slice(0, 4).map((x) => `${E.unitName(x.unit)} ${x.margin}`).join(", ")}  (${d.rows.length} units)`);

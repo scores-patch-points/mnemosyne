@@ -7,12 +7,12 @@
 //   record  := kind(1)  length(varint)  payload(length)  chain(8)
 //   varint  := LEB128 unsigned
 //   every payload starts with domain(8) = sha256(name)[0:8]: one log, many readings; a reader that does not know a domain skips it
-//   kinds   := 0x01 GROUND   0x02 DMD   0x03 WINDOW   0x04 MARGINS     (this file's own; readers skip unknown kinds by length)
+//   kinds   := 0x01 GROUND   0x02 DMD   0x03 WINDOW   0x04 MARGINS   0x05 DMDN (a DMD whose units are named by 8-byte ids)     (this file's own; readers skip unknown kinds by length)
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
 
 export const MAGIC = Buffer.from("EOTM"), VERSION = 1;
-export const KIND = Object.freeze({ GROUND: 1, DMD: 2, WINDOW: 3, MARGINS: 4 });
+export const KIND = Object.freeze({ GROUND: 1, DMD: 2, WINDOW: 3, MARGINS: 4, DMDN: 5 });
 export const KIND_NAME = Object.fromEntries(Object.entries(KIND).map(([k, v]) => [v, k]));
 const GENESIS = createHash("sha256").update("EOTM1").digest().subarray(0, 8);
 
@@ -78,6 +78,11 @@ export const enc = {
     for (const c of changes) w.u8(c.unit).varint(c.from + 1).varint(c.to + 1);            // 0 = no structure / not yet; v+1 otherwise
     return w.done();
   },
+  dmdn: ({ domain, step, source, before, after, surpriseBits, absorbedBits, changes }) => {
+    const w = new Writer().hex(domain, 8).varint(step).hex(source, 10).hex(before, 16).hex(after, 16).f32(surpriseBits).f32(absorbedBits).varint(changes.length);
+    for (const c of changes) w.hex(c.id, 8).varint(c.from + 1).varint(c.to + 1);              // id = sha256(name)[0:8]; 0 = not in the conclusion
+    return w.done();
+  },
   window: ({ domain, rootP50, rootP95, rootMax, artP50, artP95, artMax, orders, pivotal }) => new Writer().hex(domain, 8).varint(rootP50).varint(rootP95).varint(rootMax).varint(artP50).varint(artP95).varint(artMax).varint(orders).varint(pivotal).done(),
   margins: (rows, domain) => { const w = new Writer().hex(domain, 8).varint(rows.length); for (const r of rows) w.u8(r.unit).varint(r.mode + 1).varint(r.support).varint(r.of).varint(r.margin); return w.done(); },
 };
@@ -86,6 +91,7 @@ export function decode({ kind, payload }) {
   switch (kind) {
     case KIND.GROUND: return { kind: "GROUND", domain: r.hex(8), root: r.hex(16), setRoot: r.hex(16), editions: r.varint(), units: r.varint() };
     case KIND.DMD: { const o = { kind: "DMD", domain: r.hex(8), step: r.varint(), source: r.hex(10), before: r.hex(16), after: r.hex(16), surpriseBits: r.f32(), absorbedBits: r.f32() }; const n = r.varint(); o.changes = Array.from({ length: n }, () => ({ unit: r.u8(), from: r.varint() - 1, to: r.varint() - 1 })); return o; }
+    case KIND.DMDN: { const o = { kind: "DMDN", domain: r.hex(8), step: r.varint(), source: r.hex(10), before: r.hex(16), after: r.hex(16), surpriseBits: r.f32(), absorbedBits: r.f32() }; const n = r.varint(); o.changes = Array.from({ length: n }, () => ({ id: r.hex(8), from: r.varint() - 1, to: r.varint() - 1 })); return o; }
     case KIND.WINDOW: return { kind: "WINDOW", domain: r.hex(8), rootP50: r.varint(), rootP95: r.varint(), rootMax: r.varint(), artP50: r.varint(), artP95: r.varint(), artMax: r.varint(), orders: r.varint(), pivotal: r.varint() };
     case KIND.MARGINS: { const domain = r.hex(8), n = r.varint(); return { kind: "MARGINS", domain, rows: Array.from({ length: n }, () => ({ unit: r.u8(), mode: r.varint() - 1, support: r.varint(), of: r.varint(), margin: r.varint() })) }; }
     default: return { kind: `UNKNOWN(${kind})`, bytes: payload.length };       // skipped by length, never an error

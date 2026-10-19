@@ -12,13 +12,16 @@
     record  := kind(1)  length(varint)  payload(length)  chain(8)
     chain   := sha256(prevChain || kind || payload)[0:8]     genesis = sha256("EOTM1")[0:8]
     payload := domain(8) ...                                 domain = sha256(name)[0:8]; one log, many readings
-    kinds   := 0x01 GROUND  0x02 DMD  0x03 WINDOW  0x04 MARGINS     (unknown kinds are skipped by length)
+    kinds   := 0x01 GROUND  0x02 DMD  0x03 WINDOW  0x04 MARGINS  0x05 DMDN (a DMD whose units are named by 8-byte ids)    (unknown kinds are skipped by length)
 
 Append is the only write. Changing or removing any byte breaks the chain from that record on.
 
 ## What is in it now
 
-One domain, `udhr-core`: the Universal Declaration of Human Rights read in 515 editions, co-equal, as one structure of nameless referents. 7 records, 735 bytes: four DMD records (edition 1 sets the structure, then only the preamble moves), the stable window, the margins (how many editions must go before any unit's structure moves), and the ground (charter root `18aa32ed202156bb6132c954091dfb5c`).
+Two conclusions about the Universal Declaration of Human Rights, 12 records, 2,409 bytes:
+
+- **`udhr-core`** — the paragraph structure shared by 515 editions, read co-equal: four DMD records (edition 1 sets the structure, then only the preamble moves), the stable window, the margins (how many editions must go before any unit's structure moves), and the ground (charter root `18aa32ed202156bb6132c954091dfb5c`).
+- **`udhr-core/propositions`** — the propositions the Declaration makes, language-independent, from the five hand-adjudicated readings (eng, spa, arb, cmn_hans, swh): four DMDN records and the ground. After the fifth edition 128 of 138 propositions are carried by more than half of them. Five witnesses is what exists, so this is hand-adjudicated wording-grain evidence, not a mechanical convergence over 515.
 
 ## Not here
 

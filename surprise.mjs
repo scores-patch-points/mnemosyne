@@ -46,3 +46,21 @@ export function makeModel(units) {
     },
   };
 }
+
+/** KL( Beta(a2,b2) || Beta(a1,b1) ) in nats. */
+export function klBeta(a2, b2, a1, b1) {
+  const lB = (a, b) => lgamma(a) + lgamma(b) - lgamma(a + b);
+  return lB(a1, b1) - lB(a2, b2) + (a2 - a1) * digamma(a2) + (b2 - b1) * digamma(b2) + (a1 - a2 + b1 - b2) * digamma(a2 + b2);
+}
+/** A Bernoulli model per item over a FIXED universe: is this item carried by an edition? Prior Beta(1,1). observe(Set of carried items) -> bits. */
+export function makeCarryModel(universe) {
+  const ab = new Map([...universe].map((x) => [x, [1, 1]]));
+  return {
+    ab,
+    observe(carried) {
+      let nats = 0;
+      for (const [x, [a, b]] of ab) { const next = carried.has(x) ? [a + 1, b] : [a, b + 1]; nats += klBeta(next[0], next[1], a, b); ab.set(x, next); }
+      return bits(nats);
+    },
+  };
+}
