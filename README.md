@@ -18,10 +18,11 @@ Append is the only write. Changing or removing any byte breaks the chain from th
 
 ## What is in it now
 
-Two conclusions about the Universal Declaration of Human Rights, 12 records, 2,409 bytes:
+Three conclusions about the Universal Declaration of Human Rights, 49 records, 5,615 bytes:
 
 - **`udhr-core`** — the paragraph structure shared by 515 editions, read co-equal: four DMD records (edition 1 sets the structure, then only the preamble moves), the stable window, the margins (how many editions must go before any unit's structure moves), and the ground (charter root `18aa32ed202156bb6132c954091dfb5c`).
 - **`udhr-core/propositions`** — the propositions the Declaration makes, language-independent, from the five hand-adjudicated readings (eng, spa, arb, cmn_hans, swh): four DMDN records and the ground. After the fifth edition 128 of 138 propositions are carried by more than half of them. Five witnesses is what exists, so this is hand-adjudicated wording-grain evidence, not a mechanical convergence over 515.
+- **`udhr-core/beings`** — which units of the Declaration the languages themselves bind together, read with the stack's ear and heard-nominals tier (no capitals) in the 233 editions (209 language codes) whose language has a POS prior; the other 245 have none and are not read. The conclusion is the set of **mutual nearest-neighbour unit pairs** by shared beings: 9 pairs (0-26, 3-6, 4-5, 7-12, 8-10, 14-29, 15-17, 23-25, 28-30), against a shuffled-label null of at most 6 over 200 draws. The claim was fixed before the run and holds, narrowly. It is **not** a majority structure (mean share of editions agreeing on a unit's modal neighbour is 0.235, null 0.063) and it needs the whole set: the stable window is 233 of 233 in every order, the pair set still changes at edition 177, and no single edition is pivotal. 35 DMDN records.
 
 ## Not here
 

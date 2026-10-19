@@ -10,9 +10,9 @@ const LOG = new URL("./mind.eot", import.meta.url), buf = readFileSync(LOG), sca
 
 test("the committed log verifies and holds only differences plus the ground under them, per domain", () => {
   assert.ok(scan.ok, scan.error);
-  assert.ok(buf.length < 4096, `${buf.length} bytes`);
+  assert.ok(buf.length < 8192, `${buf.length} bytes`);
   const domains = [...new Set(dec.map((d) => d.domain))];
-  assert.equal(domains.length, 2, "udhr-core (structure) and udhr-core/propositions");
+  assert.equal(domains.length, 3, "udhr-core (structure), udhr-core/propositions, udhr-core/beings");
   for (const dom of domains) {
     const mine = dec.filter((d) => d.domain === dom);
     const diffs = mine.filter((d) => d.kind === "DMD" || d.kind === "DMDN"), ground = mine.filter((d) => d.kind === "GROUND").at(-1);
