@@ -10,6 +10,7 @@
 //   kinds   := 0x01 GROUND   0x02 DMD   0x03 WINDOW   0x04 MARGINS   0x05 DMDN (a DMD whose units are named by 8-byte ids)   0x06 REVISE (a DMDN caused by late evidence about an edition already read)     (this file's own; readers skip unknown kinds by length)
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 export const MAGIC = Buffer.from("EOTM"), VERSION = 1;
 export const KIND = Object.freeze({ GROUND: 1, DMD: 2, WINDOW: 3, MARGINS: 4, DMDN: 5, REVISE: 6 });
@@ -60,13 +61,31 @@ export function scan(buf) {
   return { ok: true, records, tip: prev };
 }
 
-/** Append one record to a log file. The only write there is: the file never shrinks or changes before its tip. */
+/** The core pinned beside a log, if any (core.json): the immutable domain, its record count and byte length. */
+export const coreOf = (path) => { const p = join(dirname(path), "core.json"); return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : null; };
+
+/** Append one record to a log file. The only write there is: the file never shrinks or changes before its tip.
+ *  If a core.json sits beside the log, no record may be appended to the core's domain: the core is immutable. */
 export function append(path, kind, payload) {
+  const core = coreOf(path);
+  if (core && Buffer.from(payload).subarray(0, 8).toString("hex") === domainOf(core.domain)) throw new Error(`refusing to append: the domain "${core.domain}" is the immutable core of this mind (core.json)`);
   const s = scan(readFileSync(path));
   if (!s.ok) throw new Error(`refusing to append to a broken log: ${s.error}`);
   const { bytes } = frame(s.tip, kind, payload);
   appendFileSync(path, bytes);
   return bytes.length;
+}
+/** Is the immutable core of `buf` exactly what `core` (core.json) pins? Returns null when intact, else the reason. Pure: needs only the log's bytes and the pin. */
+export function checkCore(buf, core) {
+  const sc = scan(buf); if (!sc.ok) return `the log does not verify: ${sc.error}`;
+  const dom = domainOf(core.domain), d = sc.records.map(decode), mine = d.map((x, i) => (x.domain === dom ? i : -1)).filter((i) => i >= 0);
+  if (mine.length !== core.records || mine.some((i, k) => i !== k)) return `the core domain holds ${mine.length} record(s) at positions ${mine.slice(0, 9).join(",")}; the pin says the first ${core.records}`;
+  const end = sc.records[core.records]?.offset ?? buf.length;
+  if (end !== core.bytes) return `the core ends at byte ${end}; the pin says ${core.bytes}`;
+  if (createHash("sha256").update(buf.subarray(0, core.bytes)).digest("hex") !== core.prefixSha256) return "the core's bytes differ from the pinned prefix hash";
+  const g = d.filter((x) => x.domain === dom && x.kind === "GROUND").at(-1);
+  if (!g || g.root !== core.charterRoot || g.setRoot !== core.editionSetRoot) return "the core's ground differs from the pinned charter root or edition-set root";
+  return null;
 }
 export const exists = existsSync;
 
