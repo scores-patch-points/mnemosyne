@@ -1,0 +1,30 @@
+# What a pull request must not do to the mind. Runs the tests, verifies the hash chain, and (on pull requests) checks that
+# the base log is a byte prefix of the PR's log, that core.json is untouched, and that the immutable core is intact.
+name: mind
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: tests
+        run: node --test
+      - name: the hash chain verifies
+        run: node eotm-cli.mjs mind.eot verify
+      - name: what this pull request may not do to the mind
+        if: github.event_name == 'pull_request'
+        run: |
+          mkdir -p /tmp/base
+          git show "origin/${{ github.base_ref }}:mind.eot" > /tmp/base/mind.eot
+          git show "origin/${{ github.base_ref }}:core.json" > /tmp/base/core.json 2>/dev/null || rm -f /tmp/base/core.json
+          node ci-check.mjs /tmp/base .
