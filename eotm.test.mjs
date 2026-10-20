@@ -15,13 +15,21 @@ test("the committed log verifies and holds only differences plus the ground unde
   assert.equal(domains.length, 6, "udhr-core (structure), propositions, beings, beings-independent, ring1-english, ring1-associates");
   for (const dom of domains) {
     const mine = dec.filter((d) => d.domain === dom);
-    const diffs = mine.filter((d) => d.kind === "DMD" || d.kind === "DMDN"), ground = mine.filter((d) => d.kind === "GROUND").at(-1);
+    const diffs = mine.filter((d) => d.kind === "DMD" || d.kind === "DMDN" || d.kind === "REVISE"), ground = mine.filter((d) => d.kind === "GROUND").at(-1);
     assert.ok(diffs.length >= 1);
     for (const d of diffs) assert.notEqual(d.before, d.after, "a record that changed nothing is not a record");
     for (let i = 1; i < diffs.length; i++) assert.equal(diffs[i].before, diffs[i - 1].after, "each difference starts where the last one ended");
     assert.equal(diffs.at(-1).after, ground.root, "the last difference lands on the ground");
   }
   assert.ok(dec.some((d) => d.kind === "WINDOW") && dec.some((d) => d.kind === "MARGINS"));
+});
+
+test("the folder-label withdrawal: ring1-associates ends empty, ring1-english loses ac:4/13/21, each by a REVISE citing the audit", () => {
+  const rev = dec.filter((d) => d.kind === "REVISE" && d.source === "da44cc99f67cc8316db9");
+  assert.equal(rev.length, 2, "one REVISE per withdrawn domain");
+  assert.ok(rev.every((d) => d.changes.length >= 1 && d.changes.every((c) => c.from === 1 && c.to === 0)), "a withdrawal only turns items off");
+  assert.equal(rev.find((d) => d.changes.length === 64).after, "e3b0c44298fc1c149afbf4c8996fb924", "the associates end as the empty set");
+  assert.equal(rev.filter((d) => d.changes.length === 3).length, 1, "ring1-english: ac:4, ac:13, ac:21");
 });
 
 test("tamper-evident, append-only, unknown kinds skipped by length", () => {
