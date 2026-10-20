@@ -47,3 +47,14 @@ test("Bayesian surprise: zero for no update, habituates on repetition, larger fo
   assert.ok(seen[2] < seen[1] && seen[1] < seen[0], "a proposition carried again and again stops being news");
   assert.ok(c.observe(new Set()) > seen[2], "an edition that drops it is news");
 });
+
+test("REVISE: late evidence about an edition already read is a record of its own kind, same layout as DMDN", () => {
+  const p = `${tmpdir()}/_eotm_revise.eotm`; copyFileSync(LOG, p);
+  const a = { domain: E.domainOf("test/revise"), step: 7, source: "ab".repeat(10), before: "0a".repeat(16), after: "0b".repeat(16), surpriseBits: 1.5, absorbedBits: 0, changes: [{ id: "cd".repeat(8), from: 1, to: 0 }] };
+  E.append(p, E.KIND.REVISE, E.enc.revise(a));
+  const after = readFileSync(p), s = E.scan(after);
+  assert.ok(s.ok, s.error); assert.ok(after.subarray(0, buf.length).equals(buf));
+  const d = E.decode(s.records.at(-1));
+  assert.equal(d.kind, "REVISE"); assert.equal(d.step, 7); assert.deepEqual(d.changes, [{ id: "cd".repeat(8), from: 1, to: 0 }]);
+  assert.equal(E.KIND.REVISE, 6);
+});

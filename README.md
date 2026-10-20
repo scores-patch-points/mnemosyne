@@ -12,7 +12,7 @@
     record  := kind(1)  length(varint)  payload(length)  chain(8)
     chain   := sha256(prevChain || kind || payload)[0:8]     genesis = sha256("EOTM1")[0:8]
     payload := domain(8) ...                                 domain = sha256(name)[0:8]; one log, many readings
-    kinds   := 0x01 GROUND  0x02 DMD  0x03 WINDOW  0x04 MARGINS  0x05 DMDN (a DMD whose units are named by 8-byte ids)    (unknown kinds are skipped by length)
+    kinds   := 0x01 GROUND  0x02 DMD  0x03 WINDOW  0x04 MARGINS  0x05 DMDN (a DMD whose units are named by 8-byte ids)  0x06 REVISE (the same layout, caused by late evidence about an edition already read; appended only if the conclusion moved)    (unknown kinds are skipped by length)
 
 Append is the only write. Changing or removing any byte breaks the chain from that record on.
 
