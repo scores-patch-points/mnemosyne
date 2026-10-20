@@ -10,6 +10,7 @@
 //   kinds   := 0x01 GROUND   0x02 DMD   0x03 WINDOW   0x04 MARGINS   0x05 DMDN (a DMD whose units are named by 8-byte ids)   0x06 REVISE (a DMDN caused by late evidence about an edition already read)     (this file's own; readers skip unknown kinds by length)
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 export const MAGIC = Buffer.from("EOTM"), VERSION = 1;
 export const KIND = Object.freeze({ GROUND: 1, DMD: 2, WINDOW: 3, MARGINS: 4, DMDN: 5, REVISE: 6 });
@@ -60,8 +61,14 @@ export function scan(buf) {
   return { ok: true, records, tip: prev };
 }
 
-/** Append one record to a log file. The only write there is: the file never shrinks or changes before its tip. */
+/** The core pinned beside a log, if any (core.json): the immutable domain, its record count and byte length. */
+export const coreOf = (path) => { const p = join(dirname(path), "core.json"); return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : null; };
+
+/** Append one record to a log file. The only write there is: the file never shrinks or changes before its tip.
+ *  If a core.json sits beside the log, no record may be appended to the core's domain: the core is immutable. */
 export function append(path, kind, payload) {
+  const core = coreOf(path);
+  if (core && Buffer.from(payload).subarray(0, 8).toString("hex") === domainOf(core.domain)) throw new Error(`refusing to append: the domain "${core.domain}" is the immutable core of this mind (core.json)`);
   const s = scan(readFileSync(path));
   if (!s.ok) throw new Error(`refusing to append to a broken log: ${s.error}`);
   const { bytes } = frame(s.tip, kind, payload);

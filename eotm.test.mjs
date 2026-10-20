@@ -3,6 +3,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createHash } from "node:crypto";
+import { mkdtempSync } from "node:fs";
 import * as E from "./eotm.mjs";
 import { klDirichlet, klBeta, makeModel, makeCarryModel } from "./surprise.mjs";
 
@@ -57,4 +60,24 @@ test("REVISE: late evidence about an edition already read is a record of its own
   const d = E.decode(s.records.at(-1));
   assert.equal(d.kind, "REVISE"); assert.equal(d.step, 7); assert.deepEqual(d.changes, [{ id: "cd".repeat(8), from: 1, to: 0 }]);
   assert.equal(E.KIND.REVISE, 6);
+});
+
+// ---- the immutable core (core.json) ----
+const CORE = JSON.parse(readFileSync(new URL("./core.json", import.meta.url), "utf8"));
+test("the core is the UDHR domain, pinned: its first records and bytes are exactly what core.json says", () => {
+  const coreDom = E.domainOf(CORE.domain), idx = dec.map((d, i) => (d.domain === coreDom ? i : -1)).filter((i) => i >= 0);
+  assert.equal(idx.length, CORE.records); assert.deepEqual(idx, Array.from({ length: CORE.records }, (_, i) => i), "the core records are the first ones, contiguous");
+  assert.equal(scan.records[CORE.records].offset, CORE.bytes);
+  assert.equal(createHash("sha256").update(buf.subarray(0, CORE.bytes)).digest("hex"), CORE.prefixSha256, "the core's bytes changed");
+  const g = dec.filter((d) => d.domain === coreDom && d.kind === "GROUND").at(-1);
+  assert.equal(g.root, CORE.charterRoot); assert.equal(g.setRoot, CORE.editionSetRoot);
+});
+
+test("the core is immutable: appending to its domain is refused; any other domain still appends", () => {
+  const dir = mkdtempSync(join(tmpdir(), "core-")), p = join(dir, "mind.eot");
+  copyFileSync(LOG, p); copyFileSync(new URL("./core.json", import.meta.url), join(dir, "core.json"));
+  const rec = (name) => E.enc.dmdn({ domain: E.domainOf(name), step: 0, source: "ab".repeat(10), before: "00".repeat(16), after: "11".repeat(16), surpriseBits: 1, absorbedBits: 0, changes: [] });
+  assert.throws(() => E.append(p, E.KIND.DMDN, rec(CORE.domain)), /immutable core/);
+  assert.equal(readFileSync(p).length, buf.length, "the refused append wrote nothing");
+  E.append(p, E.KIND.DMDN, rec("test/an-encounter")); assert.ok(readFileSync(p).length > buf.length);
 });

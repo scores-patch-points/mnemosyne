@@ -1,0 +1,13 @@
+{
+  "schema": "EOTMCore@1",
+  "declared": "2026-10-20",
+  "domain": "udhr-core",
+  "what": "The Universal Declaration of Human Rights, read as the structure shared by the frozen set of its editions: the immutable core of this mind. Everything after it is a record of what the mind encountered and how that changed it.",
+  "records": 7,
+  "bytes": 735,
+  "prefixSha256": "4623ea13d9a897cdd5f252dbc0bcd8cc7a65da8d1166752918b05e405a3166bf",
+  "charterRoot": "18aa32ed202156bb6132c954091dfb5c",
+  "editionSetRoot": "347f9e678d82bc63b17a692bc3b5e8e0",
+  "editionsSegmented": 515,
+  "rule": "No record may be appended to this domain. The first `bytes` bytes of mind.eot must equal `prefixSha256`. A later reading may disagree with the core; it records the disagreement in its own domain and never edits the core."
+}
