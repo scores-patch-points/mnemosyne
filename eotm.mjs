@@ -75,6 +75,18 @@ export function append(path, kind, payload) {
   appendFileSync(path, bytes);
   return bytes.length;
 }
+/** Is the immutable core of `buf` exactly what `core` (core.json) pins? Returns null when intact, else the reason. Pure: needs only the log's bytes and the pin. */
+export function checkCore(buf, core) {
+  const sc = scan(buf); if (!sc.ok) return `the log does not verify: ${sc.error}`;
+  const dom = domainOf(core.domain), d = sc.records.map(decode), mine = d.map((x, i) => (x.domain === dom ? i : -1)).filter((i) => i >= 0);
+  if (mine.length !== core.records || mine.some((i, k) => i !== k)) return `the core domain holds ${mine.length} record(s) at positions ${mine.slice(0, 9).join(",")}; the pin says the first ${core.records}`;
+  const end = sc.records[core.records]?.offset ?? buf.length;
+  if (end !== core.bytes) return `the core ends at byte ${end}; the pin says ${core.bytes}`;
+  if (createHash("sha256").update(buf.subarray(0, core.bytes)).digest("hex") !== core.prefixSha256) return "the core's bytes differ from the pinned prefix hash";
+  const g = d.filter((x) => x.domain === dom && x.kind === "GROUND").at(-1);
+  if (!g || g.root !== core.charterRoot || g.setRoot !== core.editionSetRoot) return "the core's ground differs from the pinned charter root or edition-set root";
+  return null;
+}
 export const exists = existsSync;
 
 // ---- the four record kinds ----------------------------------------------------------------------------------------
