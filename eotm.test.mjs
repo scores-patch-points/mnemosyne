@@ -12,7 +12,7 @@ test("the committed log verifies and holds only differences plus the ground unde
   assert.ok(scan.ok, scan.error);
   assert.ok(buf.length < 16384, `${buf.length} bytes`);
   const domains = [...new Set(dec.map((d) => d.domain))];
-  assert.equal(domains.length, 6, "udhr-core (structure), propositions, beings, beings-independent, ring1-english, ring1-associates");
+  assert.equal(domains.length, 7, "udhr-core (structure), propositions, beings, beings-independent, ring1-english, ring1-associates, ring1-regions");
   for (const dom of domains) {
     const mine = dec.filter((d) => d.domain === dom);
     const diffs = mine.filter((d) => d.kind === "DMD" || d.kind === "DMDN"), ground = mine.filter((d) => d.kind === "GROUND").at(-1);
